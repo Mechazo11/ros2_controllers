@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include "mecanum_drive_controller/mecanum_drive_controller.hpp"
 
 #include <limits>
@@ -312,9 +313,18 @@ controller_interface::CallbackReturn MecanumDriveController::on_deactivate(
   bool value_set_no_error = true;
   for (size_t i = 0; i < NR_CMD_ITFS; ++i)
   {
-    value_set_no_error &=
-      command_interfaces_[i].set_value(std::numeric_limits<double>::quiet_NaN());
+    /**
+     * From ros2_control/hardware_interface/include/loaned_command_interface.hpp
+     * the call signature for .set() value is
+     * void set_value(double val) { command_interface_.set_value(val); }
+     * This shows set_value method returns void but in the following line it is expecting a boolean return
+     */
+    // value_set_no_error &=
+    //   command_interfaces_[i].set_value(std::numeric_limits<double>::quiet_NaN());
+    command_interfaces_[i].set_value(std::numeric_limits<double>::quiet_NaN());
+
   }
+  // WARNING! This logic block now, may never get executed
   if (!value_set_no_error)
   {
     RCLCPP_ERROR(
@@ -443,26 +453,39 @@ controller_interface::return_type MecanumDriveController::update_and_write_comma
 
     // Set wheels velocities - The joint names are sorted according to the order documented in the
     // header file!
-    const bool value_set_error =
-      command_interfaces_[FRONT_LEFT].set_value(wheel_front_left_vel) &&
-      command_interfaces_[FRONT_RIGHT].set_value(wheel_front_right_vel) &&
-      command_interfaces_[REAR_RIGHT].set_value(wheel_rear_right_vel) &&
-      command_interfaces_[REAR_LEFT].set_value(wheel_rear_left_vel);
-    RCLCPP_ERROR_EXPRESSION(
-      get_node()->get_logger(), !value_set_error,
-      "Setting values to command interfaces has failed! "
-      "This means that you are maybe blocking the interface in your hardware for too long.");
+    // const bool value_set_error =
+    //   command_interfaces_[FRONT_LEFT].set_value(wheel_front_left_vel) &&
+    //   command_interfaces_[FRONT_RIGHT].set_value(wheel_front_right_vel) &&
+    //   command_interfaces_[REAR_RIGHT].set_value(wheel_rear_right_vel) &&
+    //   command_interfaces_[REAR_LEFT].set_value(wheel_rear_left_vel);
+    // RCLCPP_ERROR_EXPRESSION(
+    //   get_node()->get_logger(), !value_set_error,
+    //   "Setting values to command interfaces has failed! "
+    //   "This means that you are maybe blocking the interface in your hardware for too long.");
+
+    // WARNING! tentative patch, no longer pesrforms setting value command error checking
+    command_interfaces_[FRONT_LEFT].set_value(wheel_front_left_vel);
+    command_interfaces_[FRONT_RIGHT].set_value(wheel_front_right_vel);
+    command_interfaces_[REAR_LEFT].set_value(wheel_rear_left_vel);
+    command_interfaces_[REAR_RIGHT].set_value(wheel_rear_right_vel);
+  
   }
   else
   {
-    const bool value_set_error = command_interfaces_[FRONT_LEFT].set_value(0.0) &&
-                                 command_interfaces_[FRONT_RIGHT].set_value(0.0) &&
-                                 command_interfaces_[REAR_RIGHT].set_value(0.0) &&
-                                 command_interfaces_[REAR_LEFT].set_value(0.0);
-    RCLCPP_ERROR_EXPRESSION(
-      get_node()->get_logger(), !value_set_error,
-      "Setting values to command interfaces has failed! "
-      "This means that you are maybe blocking the interface in your hardware for too long.");
+    // const bool value_set_error = command_interfaces_[FRONT_LEFT].set_value(0.0) &&
+    //                              command_interfaces_[FRONT_RIGHT].set_value(0.0) &&
+    //                              command_interfaces_[REAR_RIGHT].set_value(0.0) &&
+    //                              command_interfaces_[REAR_LEFT].set_value(0.0);
+    // RCLCPP_ERROR_EXPRESSION(
+    //   get_node()->get_logger(), !value_set_error,
+    //   "Setting values to command interfaces has failed! "
+    //   "This means that you are maybe blocking the interface in your hardware for too long.");
+    
+    // WARNING! tentative patch, no longer pesrforms setting value command error checking
+    command_interfaces_[FRONT_LEFT].set_value(0.0);
+    command_interfaces_[FRONT_RIGHT].set_value(0.0);
+    command_interfaces_[REAR_RIGHT].set_value(0.0);
+    command_interfaces_[REAR_LEFT].set_value(0.0);
   }
 
   // Publish odometry message
